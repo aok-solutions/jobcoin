@@ -6,20 +6,20 @@ const utils = require("./utils");
 const client = require('./apiClient')
 
 const houseAddress = 'TheHouse'
+let depositAmount
 
 const getDeposit = (address) => {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       client.getAddressInfo(address)
-        .then(response => {
-          console.log('response: ', response.data)
-          resolve(response.data.balance)
-        }).catch(error => reject(new Error(error)))
+        .then(response => resolve(response.data.balance))
+        .catch(error => reject(new Error(error)))
     }, 2000)
   })
 }
 
 const pollNetwork = (address) => {
+  console.log('polling network...')
   return getDeposit(address)
     .then((deposit) => {
       if (parseFloat(deposit) > 0) return deposit
@@ -28,7 +28,21 @@ const pollNetwork = (address) => {
 }
 
 const transferToHouse = (deposit, depositAddress) => {
+  depositAmount = deposit
   return client.sendJobcoins(depositAddress, houseAddress, deposit)
+}
+
+const distributeCoins = (inputAddresses) => {
+  let addresses = inputAddresses.split(",").map(address => address.trim())
+  let randoms = addresses.map(address => Math.floor((Math.random() * 100) + 1))
+  let sum = randoms.reduce((a,b) => a + b)
+
+  addresses.map((address,i) => {
+    let transferAmount = randoms[i] / parseFloat(sum) * parseFloat(depositAmount)
+    client.sendJobcoins(houseAddress, address, transferAmount.toString())
+      .then(response => console.log(`successfully sent ${transferAmount} to ${address}`))
+      .catch(err => console.log('error sending jobcoins: ', err))
+  })
 }
 
 function prompt() {
@@ -47,10 +61,9 @@ function prompt() {
     },
   ])
   .then((answers) => {
-    // poll network for transaction to deposit address
     pollNetwork(depositAddress)
       .then(deposit => transferToHouse(deposit, depositAddress))
-      .then(response => console.log('money sent to house: ', response.data))
+      .then(response => distributeCoins(answers.addresses))
       .catch(err => console.error('something went wrong: ', err))
 
     if (answers.deposit && answers.deposit.toLowerCase() === "y") {
