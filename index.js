@@ -5,6 +5,8 @@ const inquirer = require("inquirer");
 const utils = require("./utils");
 const client = require('./apiClient')
 
+const houseAddress = 'TheHouse'
+
 const getDeposit = (address) => {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
@@ -25,6 +27,10 @@ const pollNetwork = (address) => {
     }).catch(error => console.error('error retrieving deposit: ', error))
 }
 
+const transferToHouse = (deposit, depositAddress) => {
+  return client.sendJobcoins(depositAddress, houseAddress, deposit)
+}
+
 function prompt() {
   const depositAddress = utils.generateDepositAddress()
 
@@ -43,10 +49,9 @@ function prompt() {
   .then((answers) => {
     // poll network for transaction to deposit address
     pollNetwork(depositAddress)
-      .then(deposit => {
-        console.log('coins deposited: ', deposit)
-        console.log('distribute to these addresses: ', addresses)
-      })
+      .then(deposit => transferToHouse(deposit, depositAddress))
+      .then(response => console.log('money sent to house: ', response.data))
+      .catch(err => console.error('something went wrong: ', err))
 
     if (answers.deposit && answers.deposit.toLowerCase() === "y") {
       prompt();
