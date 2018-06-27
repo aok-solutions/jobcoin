@@ -12,7 +12,6 @@ module.exports = {
   },
 
   pollNetwork: (address) => {
-    console.log('polling network...')
     return module.exports.getDeposit(address)
       .then((deposit) => {
         if (parseFloat(deposit) > 0) return deposit
