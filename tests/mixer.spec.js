@@ -1,24 +1,40 @@
-const chai = require("chai")
-const spies = require('chai-spies')
 const expect = require("chai").expect
-chai.use(spies)
-
+const sinon = require('sinon')
 const moxios = require('moxios')
 const mixer = require("../mixer")
 
 describe('mixer', () => {
+  beforeEach(() => moxios.install())
+  afterEach(() => moxios.uninstall())
+
+  describe('pollNetwork', () => {
+    it('should poll the network until the deposit amount is greater than zero', async () => {
+      let address = 'depositAddress'
+      let getDeposit = sinon.stub(mixer, 'getDeposit')
+      getDeposit.onCall(0).returns(Promise.resolve(0))
+      getDeposit.onCall(1).returns(Promise.resolve(0))
+      getDeposit.onCall(2).returns(Promise.resolve(0))
+      getDeposit.onCall(3).returns(Promise.resolve(20))
+
+      let result = await mixer.pollNetwork(address)
+
+      expect(result).to.equal(20)
+      sinon.assert.callCount(getDeposit, 4)
+
+      getDeposit.restore()
+    })
+  })
 
   describe('transferToHouse', () => {
     it('should transfer the deposit from the deposit address to the house address', (done) => {
       moxios.withMock(() => {
-        let onFulfilled = chai.spy()
-        let onFailure = chai.spy()
+        let onFulfilled = sinon.spy()
+        let onFailure = sinon.spy()
         let depositAmount = 20
         let depositAddress = 'generatedAddress'
         let houseAddress = 'TheHouse'
 
-        mixer
-          .transferToHouse(depositAmount, depositAddress, houseAddress)
+        mixer.transferToHouse(depositAmount, depositAddress, houseAddress)
           .then(onFulfilled)
 
         moxios.wait(() => {
@@ -34,7 +50,7 @@ describe('mixer', () => {
           request.respondWith({
             status: 200
           }).then(() => {
-            expect(onFulfilled).to.have.been.called()
+            sinon.assert.calledOnce(onFulfilled)
             done()
           })
         })
