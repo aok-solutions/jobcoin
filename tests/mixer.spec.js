@@ -2,6 +2,7 @@ const expect = require("chai").expect
 const sinon = require('sinon')
 const moxios = require('moxios')
 const mixer = require("../mixer")
+const client = require("../apiClient")
 
 describe('mixer', () => {
   beforeEach(() => moxios.install())
@@ -29,7 +30,6 @@ describe('mixer', () => {
     it('should transfer the deposit from the deposit address to the house address', (done) => {
       moxios.withMock(() => {
         let onFulfilled = sinon.spy()
-        let onFailure = sinon.spy()
         let depositAmount = 20
         let depositAddress = 'generatedAddress'
         let houseAddress = 'TheHouse'
@@ -55,6 +55,21 @@ describe('mixer', () => {
           })
         })
       })
+    })
+  })
+
+
+  describe('distributeCoins', () => {
+    it('should distribute coins to given addresses', async () => {
+      let onFulfilled = sinon.spy()
+      let sendCoins = sinon.spy(client, 'sendJobcoins')
+      let inputAddresses = 'addressA, addressB, addressC'
+      let depositAmount = 70
+      let houseAddress = 'TheHouse'
+
+      let result = await mixer.distributeCoins(inputAddresses, houseAddress, depositAmount)
+
+      sinon.assert.callCount(sendCoins, 3)
     })
   })
 })
